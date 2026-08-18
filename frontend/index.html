@@ -62,7 +62,7 @@ async function refresh(){
     <div class="card"><div class="label">Live churn rate</div><div class="value">${metrics.live_predicted_churn_rate ?? '—'}</div></div>`;
 
   document.getElementById('modelInfo').innerHTML = `
-    <p><b>Selected model:</b> ${metrics.model_version}</p>
+    <p><b>Selected model:</b> ${metrics.validation_metrics.model} <span style="color:var(--muted)">(${metrics.model_version})</span></p>
     <p><b>Validation:</b> acc ${metrics.validation_metrics.accuracy} · precision ${metrics.validation_metrics.precision} · recall ${metrics.validation_metrics.recall} · f1 ${metrics.validation_metrics.f1} · roc-auc ${metrics.validation_metrics.roc_auc}</p>
     <p><b>Held-out test:</b> acc ${metrics.test_metrics.accuracy} · precision ${metrics.test_metrics.precision} · recall ${metrics.test_metrics.recall} · f1 ${metrics.test_metrics.f1} · roc-auc ${metrics.test_metrics.roc_auc}</p>`;
 

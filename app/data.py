@@ -1,11 +1,13 @@
 """
-Synthetic customer-churn dataset generator + data validation.
+Synthetic churn dataset and pre-training validation.
 
-Business problem: predict whether a telecom customer will churn based on
-account/usage features. A synthetic generator is used so the project is
-100% self-contained and reproducible without needing an external dataset
-download — the generation process itself (seeded, documented feature/label
-relationships) is part of the engineering artifact.
+Predicts telecom churn from account and usage features. The data is generated
+rather than downloaded, which keeps the repo self-contained and, more usefully,
+means the feature-to-label relationship is known: the logit below is the ground
+truth, so model behaviour can be checked against it instead of guessed at.
+
+The catch is that generated data is far tidier than the real thing. Scores here
+say more about the pipeline than about how this would do on production data.
 """
 from __future__ import annotations
 
@@ -37,8 +39,9 @@ def generate_dataset(n_rows: int = 5000, seed: int = 42) -> pd.DataFrame:
     usage_gb = np.round(rng.normal(180, 80, n_rows).clip(0, None), 1)
     late_payments = rng.poisson(0.6, n_rows)
 
-    # Ground-truth churn probability driven by a known, documented function of
-    # the features (so we can sanity-check model performance against it).
+    # Ground truth. Long tenure and long contracts suppress churn; support
+    # tickets, late payments and high monthly charges drive it up. The noise
+    # term sets the ceiling on how well any model can do here.
     logit = (
         -1.2
         - 0.05 * tenure

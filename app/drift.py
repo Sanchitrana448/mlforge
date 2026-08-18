@@ -1,8 +1,13 @@
 """
-Feature-drift detection: compares live prediction-request feature statistics
-against the training-time distribution using a standardized mean shift
-(z-score of the running mean) — a lightweight, dependency-free proxy for
-population stability index (PSI) that's easy to reason about and test.
+Feature drift: live request statistics vs the training distribution.
+
+Measures how far each feature's running mean has moved, in training standard
+deviations, and flags anything past the threshold. A cheap stand-in for PSI
+with no extra dependency.
+
+Known blind spot: this only looks at the mean. A distribution that goes bimodal
+around its original centre reads as perfectly stable. Binned PSI would catch
+that; this won't.
 """
 from __future__ import annotations
 

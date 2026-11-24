@@ -98,7 +98,7 @@ def _predict_one(req: PredictRequest, threshold: float | None = None) -> dict:
     return record
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     return {"status": "ok", "model_loaded": _STATE["model"] is not None}
 

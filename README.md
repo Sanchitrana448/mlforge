@@ -11,10 +11,10 @@ Customer churn prediction with the parts that usually get skipped: data validati
 
 ## Screenshots
 
-![MLForge dashboard with model metrics and the cost-based operating point table](docs/dashboard.png)
+![MLForge decision-threshold picker with the cost curve and recommended operating point](docs/dashboard.png)
 *Model metrics, live prediction counters and the cost table behind the recommended 0.1 threshold.*
 
-![MLForge feature drift table with three drifted features flagged](docs/drift.png)
+![MLForge feature drift bars with the drifted features flagged](docs/drift.png)
 *After "Simulate 20 drifted predictions": `monthly_charge`, `num_support_tickets` and `late_payments_last_year` are flagged as drifted.*
 
 ## About the numbers

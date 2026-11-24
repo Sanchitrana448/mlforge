@@ -9,6 +9,14 @@ Live: https://mlforge-o15e.onrender.com
 
 Customer churn prediction with the parts that usually get skipped: data validation, model comparison on a proper three-way split, a versioned model registry, a served API, and drift monitoring against the training distribution.
 
+## Screenshots
+
+![MLForge dashboard with model metrics and the cost-based operating point table](docs/dashboard.png)
+*Model metrics, live prediction counters and the cost table behind the recommended 0.1 threshold.*
+
+![MLForge feature drift table with three drifted features flagged](docs/drift.png)
+*After "Simulate 20 drifted predictions": `monthly_charge`, `num_support_tickets` and `late_payments_last_year` are flagged as drifted.*
+
 ## About the numbers
 
 Latest run, 5,000 rows, seed 42, churn base rate 24.1%:

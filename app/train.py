@@ -25,6 +25,7 @@ from sklearn.metrics import (
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
+from .threshold import operating_point
 from .data import FEATURE_COLUMNS, TARGET_COLUMN, generate_dataset, validate_dataset
 
 REGISTRY_DIR = Path(__file__).parent.parent / "model_registry"
@@ -78,6 +79,10 @@ def train_and_register(n_rows: int = 5000, seed: int = 42) -> dict:
     best_model = fitted[best["model"]]
     test_metrics = _evaluate(best["model"] + "_test", best_model, X_test_s, y_test)
 
+    op_point = operating_point(
+        y_val, best_model.predict_proba(X_val_s)[:, 1], y_test, best_model.predict_proba(X_test_s)[:, 1]
+    )
+
     version = f"v{int(time.time())}"
     model_path = REGISTRY_DIR / f"{version}.joblib"
     joblib.dump({"model": best_model, "scaler": scaler, "features": FEATURE_COLUMNS}, model_path)
@@ -97,6 +102,7 @@ def train_and_register(n_rows: int = 5000, seed: int = 42) -> dict:
         "selection_criterion": "roc_auc (validation set)",
         "validation_metrics": best,
         "test_metrics": test_metrics,
+        "operating_point": op_point,
         "training_feature_stats": training_stats,
         "class_balance": float(np.mean(y_train)),
     }

@@ -28,6 +28,8 @@
 <header>
   <div><h1>⚙ MLForge</h1><p>Production ML monitoring — model performance, live predictions, feature drift.</p></div>
   <button onclick="simulate()">Simulate 20 predictions</button>
+  <button onclick="simulate(true)" style="margin-left:8px">Simulate 20 drifted predictions</button>
+  <button onclick="resetLive()" style="margin-left:8px;background:#243044">Reset live data</button>
 </header>
 <div class="wrap">
   <div class="grid" id="statCards"></div>
@@ -35,6 +37,11 @@
   <div class="panel">
     <h2>Model</h2>
     <div id="modelInfo"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Operating point (held-out test set)</h2>
+    <div id="opPoint"></div>
   </div>
 
   <div class="panel">
@@ -66,6 +73,15 @@ async function refresh(){
     <p><b>Validation:</b> acc ${metrics.validation_metrics.accuracy} · precision ${metrics.validation_metrics.precision} · recall ${metrics.validation_metrics.recall} · f1 ${metrics.validation_metrics.f1} · roc-auc ${metrics.validation_metrics.roc_auc}</p>
     <p><b>Held-out test:</b> acc ${metrics.test_metrics.accuracy} · precision ${metrics.test_metrics.precision} · recall ${metrics.test_metrics.recall} · f1 ${metrics.test_metrics.f1} · roc-auc ${metrics.test_metrics.roc_auc}</p>`;
 
+  const op = (await fetch('/model').then(r=>r.json())).operating_point;
+  if(op){
+    const a = op.assumptions;
+    document.getElementById('opPoint').innerHTML = `
+      <p style="color:var(--muted);font-size:13px">Assumed costs: retention offer £${a.offer_cost}, lost customer £${a.lost_customer_cost}. Threshold chosen on the validation set. The served default is still 0.5; pass <code>?threshold=${op.recommended_threshold}</code> to /predict to use the recommended one.</p>
+      <table><thead><tr><th>Threshold</th><th>Recall</th><th>Precision</th><th>Customers flagged</th><th>Total cost</th></tr></thead><tbody>` +
+      op.test_table.map(r=>`<tr><td>${r.threshold}${r.threshold===op.recommended_threshold?' (recommended)':''}${r.threshold===0.5?' (default)':''}</td><td>${r.recall}</td><td>${r.precision}</td><td>${r.flagged}</td><td>£${r.total_cost.toLocaleString()}</td></tr>`).join('') + '</tbody></table>';
+  }
+
   document.querySelector('#driftTable tbody').innerHTML = drift.features.map(f=>`
     <tr><td>${f.feature}</td><td>${f.training_mean}</td><td>${f.live_mean}</td><td>${f.z_shift}</td>
     <td class="${f.drifted?'drifted':'ok'}">${f.drifted?'⚠ DRIFT':'✓ stable'}</td></tr>`).join('') || '<tr><td colspan=5>No live traffic yet.</td></tr>';
@@ -73,9 +89,19 @@ async function refresh(){
   document.querySelector('#predTable tbody').innerHTML = recent.map(p=>`
     <tr><td>${p.request_id}</td><td>${p.prediction}</td><td>${p.probability}</td><td>${p.model_version}</td></tr>`).join('') || '<tr><td colspan=4>No predictions yet.</td></tr>';
 }
-async function simulate(){
+async function resetLive(){ await fetch('/live/reset', {method:'POST'}); refresh(); }
+async function simulate(drifted){
   for(let i=0;i<20;i++){
-    const req = {
+    const req = drifted ? {
+      tenure_months: Math.random()*6,
+      monthly_charge: 170+Math.random()*60,
+      total_charge: 200+Math.random()*400,
+      num_support_tickets: 5+Math.floor(Math.random()*5),
+      contract_type: 0,
+      has_internet_addon: 1,
+      avg_monthly_usage_gb: 300+Math.random()*100,
+      late_payments_last_year: 3+Math.floor(Math.random()*3),
+    } : {
       tenure_months: Math.random()*72,
       monthly_charge: 40+Math.random()*140,
       total_charge: 500+Math.random()*4000,

@@ -7,7 +7,7 @@ import uuid
 from pathlib import Path
 
 import joblib
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
@@ -67,14 +67,17 @@ class BatchPredictRequest(BaseModel):
     records: list[PredictRequest]
 
 
-def _predict_one(req: PredictRequest) -> dict:
+def _predict_one(req: PredictRequest, threshold: float | None = None) -> dict:
     if _STATE["model"] is None:
         raise HTTPException(503, "Model not loaded")
     row = [getattr(req, col) for col in FEATURE_COLUMNS]
     X = _STATE["scaler"].transform([row])
     model = _STATE["model"]
-    pred = int(model.predict(X)[0])
     prob = float(model.predict_proba(X)[0][1]) if hasattr(model, "predict_proba") else None
+    if threshold is not None and prob is not None:
+        pred = int(prob >= threshold)
+    else:
+        pred = int(model.predict(X)[0])  # default decision rule, equivalent to 0.5
 
     sample = dict(zip(FEATURE_COLUMNS, row))
     _STATE["live_samples"].append(sample)
@@ -84,6 +87,7 @@ def _predict_one(req: PredictRequest) -> dict:
     record = {
         "prediction": pred,
         "probability": round(prob, 4) if prob is not None else None,
+        "threshold": threshold if threshold is not None else 0.5,
         "model_version": _STATE["metadata"]["version"],
         "timestamp": time.time(),
         "request_id": str(uuid.uuid4())[:8],
@@ -107,13 +111,22 @@ def model_info():
 
 
 @app.post("/predict")
-def predict(req: PredictRequest):
-    return _predict_one(req)
+def predict(req: PredictRequest, threshold: float | None = Query(None, ge=0.0, le=1.0)):
+    """Predict churn. Optional `threshold` overrides the 0.5 default; see GET /model -> operating_point."""
+    return _predict_one(req, threshold)
 
 
 @app.post("/batch-predict")
-def batch_predict(req: BatchPredictRequest):
-    return {"predictions": [_predict_one(r) for r in req.records]}
+def batch_predict(req: BatchPredictRequest, threshold: float | None = Query(None, ge=0.0, le=1.0)):
+    return {"predictions": [_predict_one(r, threshold) for r in req.records]}
+
+
+@app.post("/live/reset")
+def reset_live():
+    """Clear live samples and the prediction log (used by the dashboard demo)."""
+    _STATE["live_samples"] = []
+    _STATE["prediction_log"] = []
+    return {"status": "reset"}
 
 
 @app.post("/train")
